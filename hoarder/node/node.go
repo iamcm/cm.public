@@ -34,18 +34,6 @@ func main() {
 		log.Fatal("USAGE: node --master localhost")
 	}
 
-	run()
-
-	services, err := GetServices()
-
-	if err == nil {
-		fmt.Println(services.HasApache())
-		fmt.Println(services.HasNginx())
-		fmt.Println(services.HasPostgresql())
-	}
-}
-
-func run() {
 	servername, err := os.Hostname()
 	if err != nil {
 		servername = ""
@@ -70,6 +58,14 @@ func run() {
 	jsonOut, _ := json.Marshal(s)
 
 	sendMessage(string(jsonOut))
+
+	services := GetServices()
+
+	fmt.Println(s.HasService(services, "nginx"))
+	fmt.Println(s.HasService(services, "apache2"))
+	fmt.Println(s.HasService(services, "postgresql"))
+	fmt.Println(s.HasService(services, "IIS"))
+	fmt.Println(s.HasService(services, "Microsoft SQL Server"))
 }
 
 func sendMessage(data string) {
@@ -84,18 +80,21 @@ func getUrl() string {
 	return fmt.Sprintf("http://%s:%s/data", *MASTER_HOSTNAME, MASTER_LISTENS_ON_PORT)
 }
 
-func GetServices() (Services, error) {
+func GetServices() Services {
 	var err error
-	dir := "/etc/init.d"
 	services := Services{}
-	if _, err = os.Stat(dir); err == nil {
-		contents, _ := ioutil.ReadDir(dir)
-		for _, content := range contents {
-			services = append(services, content.Name())
+	dirs := []string{"/etc/init.d", "c:/program files", "c:/program files (x86)"}
+
+	for _, dir := range dirs {
+		if _, err = os.Stat(dir); err == nil {
+			contents, _ := ioutil.ReadDir(dir)
+			for _, content := range contents {
+				services = append(services, content.Name())
+			}
 		}
 	}
 
-	return services, err
+	return services
 }
 
 func (arr Services) Contains(s string) bool {
@@ -107,14 +106,6 @@ func (arr Services) Contains(s string) bool {
 	return false
 }
 
-func (arr Services) HasNginx() bool {
-	return arr.Contains("nginx")
-}
-
-func (arr Services) HasApache() bool {
-	return arr.Contains("apache2")
-}
-
-func (arr Services) HasPostgresql() bool {
-	return arr.Contains("postgresql")
+func (s Server) HasService(arr Services, service string) bool {
+	return arr.Contains(service)
 }
