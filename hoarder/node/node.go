@@ -28,16 +28,20 @@ type Server struct {
 type Services []string
 
 func main() {
+	fmt.Println("...")
 	flag.Parse()
+	fmt.Println("...")
 
 	if *MASTER_HOSTNAME == "" {
 		log.Fatal("USAGE: node --master localhost")
 	}
+	fmt.Println("...")
 
 	servername, err := os.Hostname()
 	if err != nil {
 		servername = ""
 	}
+	fmt.Println("...")
 
 	ips := make([]string, 0)
 	allAddrs, _ := net.InterfaceAddrs()
@@ -49,23 +53,29 @@ func main() {
 			ips = append(ips, strings.Split(ip, "/")[0])
 		}
 	}
+	fmt.Println("...")
 
 	s := Server{}
 	s.Name = servername
 	s.IPs = ips
 	s.LastModified = time.Now()
+	fmt.Println("...")
 
 	jsonOut, _ := json.Marshal(s)
+	fmt.Println("...")
 
 	sendMessage(string(jsonOut))
+	fmt.Println("...")
 
 	services := GetServices()
+	fmt.Println("...")
 
 	fmt.Println(s.HasService(services, "nginx"))
 	fmt.Println(s.HasService(services, "apache2"))
 	fmt.Println(s.HasService(services, "postgresql"))
 	fmt.Println(s.HasService(services, "IIS"))
 	fmt.Println(s.HasService(services, "Microsoft SQL Server"))
+	fmt.Println("...")
 }
 
 func sendMessage(data string) {
