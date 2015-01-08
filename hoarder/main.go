@@ -17,27 +17,29 @@ const WEBSERVER_LISTENS_ON_PORT = "8050"
 var DF jsonstore.DataFile
 
 type Server struct {
-	Name         string
-	IPs          []string
-	LastModified time.Time
+	Name           string
+	IPs            []string
+	HasNginx       bool
+	HasApache      bool
+	HasPostgresql  bool
+	HasIIS         bool
+	HasMsSqlServer bool
+	LastModified   time.Time
 }
 
 var jsonData []Server
 
 func main() {
-	log.Println("Serving on localhost:" + WEBSERVER_LISTENS_ON_PORT)
-
 	DF = jsonstore.DataFile{}
 	DF.Path = DATA_FILE_PATH
 	setJsonData()
 
-	http.HandleFunc("/data", dataHandler)
+	http.HandleFunc("/savedata", dataHandler)
+	http.HandleFunc("/data", indexHandler)
 	http.ListenAndServe(":"+WEBSERVER_LISTENS_ON_PORT, nil)
 }
 
 func dataHandler(rw http.ResponseWriter, req *http.Request) {
-	log.Println(req.URL)
-
 	data := req.FormValue("data")
 
 	server := Server{}
@@ -51,7 +53,6 @@ func dataHandler(rw http.ResponseWriter, req *http.Request) {
 
 	serverExists := false
 	for i := 0; i < len(jsonData); i++ {
-		log.Println(jsonData[i])
 		if jsonData[i].Name == server.Name {
 			jsonData[i] = server
 			serverExists = true
@@ -67,8 +68,14 @@ func dataHandler(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprintln(rw, "")
 }
 
+func indexHandler(rw http.ResponseWriter, req *http.Request) {
+	jsonOut, _ := json.Marshal(jsonData)
+
+	rw.Header().Add("content-type", "application/json")
+	fmt.Fprintln(rw, string(jsonOut))
+}
+
 func setJsonData() {
-	//fmt.Println("---setting jsonData")
 	rawdata := DF.Read()
 	if rawdata != "" {
 		dec := json.NewDecoder(strings.NewReader(rawdata))
@@ -81,8 +88,6 @@ func setJsonData() {
 }
 
 func saveJsonData() {
-	//fmt.Println("---saving jsonData:")
-	//fmt.Println(jsonData)
 	jsonOut, _ := json.Marshal(jsonData)
 	out := string(jsonOut)
 	DF.Write(out)
