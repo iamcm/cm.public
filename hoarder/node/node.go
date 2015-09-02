@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -19,14 +21,17 @@ const MASTER_LISTENS_ON_PORT = "8050"
 var MASTER_HOSTNAME = flag.String("master", "", "Hostname of master server")
 
 type Server struct {
-	Name           string
-	IPs            []string
-	HasNginx       bool
-	HasApache      bool
-	HasPostgresql  bool
-	HasIIS         bool
-	HasMsSqlServer bool
-	LastModified   time.Time
+	Name             string
+	IPs              []string
+	HasNginx         bool
+	HasApache        bool
+	HasPostgresql    bool
+	HasIIS           bool
+	HasMsSqlServer   bool
+	HasPGPool        bool
+	SiteUrls         []string
+	PGPoolNodeStatus []PGPoolNodeStatus
+	LastModified     time.Time
 }
 
 type Services []string
@@ -64,8 +69,11 @@ func main() {
 	s.HasNginx = s.HasService(services, "nginx")
 	s.HasApache = s.HasService(services, "apache2")
 	s.HasPostgresql = s.HasService(services, "postgresql")
+	s.HasPGPool = s.HasService(services, "pgpool")
+	s.PGPoolNodeStatus = s.GetPGPoolStatus()
 	s.HasIIS = s.HasService(services, "IIS")
 	s.HasMsSqlServer = s.HasService(services, "Microsoft SQL Server")
+	s.SiteUrls = s.GetSiteUrls()
 
 	jsonOut, _ := json.Marshal(s)
 
@@ -112,4 +120,73 @@ func (arr Services) ContainsPartOfText(s string) bool {
 
 func (s Server) HasService(arr Services, service string) bool {
 	return arr.ContainsPartOfText(service)
+}
+
+type PGPoolNodeStatus struct {
+	IP     string
+	status string
+}
+
+func (s Server) GetPGPoolStatus() []PGPoolNodeStatus {
+	out := make([]PGPoolNodeStatus, 0)
+	if s.HasPGPool != true {
+		return out
+	}
+	nodeCountBytes, err := exec.Command("/usr/sbin/pcp_node_count", "5", "localhost", "9898", "pcp_user password").Output()
+	if err != nil {
+		return out
+	}
+	nodeCount, err := strconv.ParseInt(string(nodeCountBytes), 10, 0)
+	if err != nil {
+		return out
+	}
+
+	for i := int64(0); i < nodeCount; i++ {
+		ns := PGPoolNodeStatus{}
+		output, err := exec.Command("/usr/sbin/pcp_node_info", "5", "localhost", "9898", "pcp_user", "password", strconv.FormatInt(i, 10)).Output()
+		if err != nil {
+			return out
+		}
+		parts := strings.Split(string(output), " ")
+		ns.IP = parts[0]
+		ns.status = resolvePGPoolStatus(parts[2])
+		out = append(out, ns)
+	}
+	return out
+}
+
+func resolvePGPoolStatus(status string) string {
+	out := "Unknown"
+	switch status {
+	case "1":
+		out = "UP"
+		break
+	case "2":
+		out = "UP"
+		break
+	case "3":
+		out = "DOWN"
+		break
+	}
+	return out
+}
+
+func (s Server) GetSiteUrls() []string {
+	out := make([]string, 0)
+
+	if s.HasNginx == true {
+		output, err := exec.Command("grep", "-ri", "server_name", "/etc/nginx/sites-enabled").Output()
+		if err != nil {
+			return out
+		}
+
+		for _, line := range strings.Split(string(output), "\n") {
+			for _, item := range strings.Split(line, " ") {
+				if len(item) > 1 && strings.Contains(item, "/etc/nginx") != true && strings.Contains(item, "server_name") != true {
+					out = append(out, strings.Replace(item, ";", "", -1))
+				}
+			}
+		}
+	}
+	return out
 }

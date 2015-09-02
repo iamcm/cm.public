@@ -13,7 +13,7 @@ var DATAFILEPATH string
 
 func main() {
 	user, _ := user.Current()
-	DATAFILEPATH = user.HomeDir + "/cm.data"
+	DATAFILEPATH = user.HomeDir + getPathSep() + "cm.data"
 
 	if len(os.Args) == 1 {
 		returnUsage()
@@ -22,7 +22,6 @@ func main() {
 	args := os.Args[1:]
 
 	if args[0] == "add" {
-		fmt.Println(os.Args)
 		if len(args) == 1 {
 			returnUsage()
 		}
@@ -35,24 +34,30 @@ func main() {
 			log.Fatal(err)
 		}
 	} else if args[0] == "list" {
+		fmt.Println("")
 		for _, cmd := range strings.Split(getStringData(), "\n") {
 			parts := strings.Split(cmd, "__")
 			if len(parts) > 1 {
-				fmt.Println("[" + parts[1] + "]")
+				fmt.Println(parts[0] + "[" + strings.TrimSpace(parts[1]) + "]")
+			} else {
+				fmt.Println(parts[0])
 			}
-			fmt.Println(parts[0])
 		}
+		fmt.Println("")
 	} else {
+		fmt.Println("")
 		searchterm := args[0]
 		for _, cmd := range strings.Split(getStringData(), "\n") {
 			if strings.Contains(cmd, searchterm) {
 				parts := strings.Split(cmd, "__")
 				if len(parts) > 1 {
-					fmt.Println("[" + parts[1] + "]")
+					fmt.Println(parts[0] + "[" + strings.TrimSpace(parts[1]) + "]")
+				} else {
+					fmt.Println(parts[0])
 				}
-				fmt.Println(parts[0])
 			}
 		}
+		fmt.Println("")
 	}
 }
 

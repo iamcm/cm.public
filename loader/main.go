@@ -80,9 +80,11 @@ func login(c chan UrlResult, theUrl string) {
 
 func main() {
 	urls := make([]string, 0)
-	urls = append(urls, "http://surf.iamcm.co.uk")
+	urls = append(urls, "http://192.168.1.22/")
+	urls = append(urls, "http://192.168.1.22/gallery/kite-surfing")
+	urls = append(urls, "http://192.168.1.22/gallery/kite-surfing/522462a7c3316814f37900ff")
 
-	numworkers = 5
+	numworkers = 20
 	numiterations = 3
 
 	for i := 0; i < numiterations; i++ {

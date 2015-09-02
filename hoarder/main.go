@@ -17,14 +17,22 @@ const WEBSERVER_LISTENS_ON_PORT = "8050"
 var DF jsonstore.DataFile
 
 type Server struct {
-	Name           string
-	IPs            []string
-	HasNginx       bool
-	HasApache      bool
-	HasPostgresql  bool
-	HasIIS         bool
-	HasMsSqlServer bool
-	LastModified   time.Time
+	Name             string
+	IPs              []string
+	HasNginx         bool
+	HasApache        bool
+	HasPostgresql    bool
+	HasIIS           bool
+	HasMsSqlServer   bool
+	HasPGPool        bool
+	SiteUrls         []string
+	PGPoolNodeStatus []PGPoolNodeStatus
+	LastModified     time.Time
+}
+
+type PGPoolNodeStatus struct {
+	IP     string
+	status string
 }
 
 var jsonData []Server
